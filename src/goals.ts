@@ -33,7 +33,7 @@ export function paceLabel(minutesPerKm: number): string {
   return `${Math.floor(seconds / 60)}分${String(seconds % 60).padStart(2, '0')}秒/km`
 }
 
-// These are conservative application templates, not a validated performance prediction.
+// Application-specific templates; thresholds and doses are not performance predictions.
 export function usesPacePractice(g: GoalConfig): boolean {
   return g.level === 'regular' && g.current3kmMinutes !== null
     && g.targetMinutes / g.distanceKm >= (g.current3kmMinutes / 3) * 0.85

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { buildTimeline, formatDuration, type Workout } from './workout'
+import GoalRationale from './GoalRationale'
+import { workoutDose } from './goalEvidence'
 import { buildGoalWeeks, goalDefaults, goalGuidance, loadGoal, paceLabel, saveGoal, validGoal,
   type GoalConfig, type GoalPlan } from './goals'
 
@@ -50,11 +52,12 @@ export default function GoalMode({ onStart }: { onStart: (workout: Workout) => v
       </div>
       <p className="goal-muted">運動日の間に1日以上休む想定です。週2回なら月・木、週3回なら月・水・土など、都合に合わせてください。</p>
       {saved && <p className="goal-muted">条件を変えて作り直すと、これまでの実施チェックはリセットされます。</p>}
+      {validGoal(draft) && <GoalRationale config={draft} compact />}
       <div className="goal-buttons"><button className="save-button" type="submit">{saved ? 'この条件で計画を保存する' : '計画を作って保存する'}</button>
         {saved && <button className="button-secondary" type="button" onClick={() => { setEditing(false); setDraft(saved.config); setMessage('') }}>キャンセル</button>}</div>
     </form>}
     {saved && !editing && <>
-      <section className="goal-summary"><div><span className="section-kicker">MY GOAL</span>
+      <section className="goal-summary"><div><span className="section-kicker">希望する目標</span>
         <h2>{saved.config.weeks}週間で、{saved.config.distanceKm}kmを{saved.config.targetMinutes}分。</h2>
         <p>目標ペース <strong>{paceLabel(saved.config.targetMinutes / saved.config.distanceKm)}</strong> · 週{saved.config.daysPerWeek}回</p></div>
         <button className="button-secondary" onClick={() => { setDraft(saved.config); setEditing(true); setMessage('') }}>目標を変更</button>
@@ -63,6 +66,7 @@ export default function GoalMode({ onStart }: { onStart: (workout: Workout) => v
           <progress aria-label="計画の実施回数" value={saved.completed.length} max={weeks.length * saved.config.daysPerWeek} /></div>
         <p className="goal-muted">達成を保証する「最低限の量」は個人差があるため算出できません。この計画は少ない回数で取り組む目安です。</p>
       </section>
+      <GoalRationale config={saved.config} />
       <nav className="week-tabs" aria-label="計画の週を選ぶ">{weeks.map((week, i) => <button key={week.week}
         className={weekIndex === i ? 'selected' : ''} aria-pressed={weekIndex === i} onClick={() => setWeekIndex(i)}>
         {week.week}週目 <small>{week.sessions.filter(s => saved.completed.includes(s.id)).length}/{week.sessions.length}</small></button>)}</nav>
@@ -70,10 +74,11 @@ export default function GoalMode({ onStart }: { onStart: (workout: Workout) => v
         <h2>{current.focus}</h2></div></div>
         <div className="goal-session-grid">{current.sessions.map((session, i) => {
           const seconds = (buildTimeline(session.workout).at(-1)?.endMs ?? 0) / 1000
+          const dose = workoutDose(session.workout)
           return <article className="goal-session" key={session.id}>
             <span className="section-kicker">SESSION {i + 1}</span><h3>{session.title}</h3>
             <strong className="goal-duration">{formatDuration(seconds)}</strong><p>{session.detail}</p>
-            <p className="goal-muted">前後に各5分の歩きを含みます。</p>
+            <p className="goal-muted">走る時間 {formatDuration(dose.runningSeconds)}／回復 {formatDuration(dose.recoverySeconds)}／前後の歩き {formatDuration(dose.preparationSeconds)}。前後は各5分です。</p>
             <button className="start-button" onClick={() => onStart(session.workout)}>このメニューを開始 →</button>
             <label className="goal-completed"><input type="checkbox" checked={saved.completed.includes(session.id)}
               onChange={() => toggleCompleted(session.id)} /> この練習を実施した</label>
